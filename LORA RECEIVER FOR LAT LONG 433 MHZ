@@ -1,0 +1,53 @@
+#include <SPI.h>
+#include <LoRa.h>
+
+String latitude = "";
+String longitude = "";
+String inString = ""; // Temporary storage for received data
+
+void setup() {
+  Serial.begin(9600);
+  while (!Serial);
+  
+  Serial.println("LoRa Receiver");
+
+  if (!LoRa.begin(433E6)) {  // Set frequency (change if needed)
+    Serial.println("Starting LoRa failed!");
+    while (1);
+  }
+}
+
+void loop() {
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) { 
+    inString = ""; // Clear previous data
+    while (LoRa.available()) {
+      char inChar = (char)LoRa.read();
+      inString += inChar;
+    }
+
+    // Check if it's latitude or longitude
+    if (inString.endsWith("N")) {
+      latitude = inString.substring(0, inString.length() - 1); // Remove 'N'
+    } 
+    else if (inString.endsWith("E")) {
+      longitude = inString.substring(0, inString.length() - 1); // Remove 'E'
+    }
+
+    // Print once both latitude and longitude are received
+    if (latitude != "" && longitude != "") {
+      Serial.print("Latitude: ");
+      Serial.print(latitude);
+      Serial.print(", Longitude: ");
+      Serial.println(longitude);
+      
+      // Reset for next set of coordinates
+      latitude = "";
+      longitude = "";
+    }
+
+    // Print RSSI (Signal Strength)
+    // Serial.print("Packet RSSI: ");
+    // Serial.println(LoRa.packetRssi());
+  }
+}
