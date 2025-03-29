@@ -1,0 +1,98 @@
+#include <SPI.h>
+#include <LoRa.h>
+#include <SoftwareSerial.h>
+#include <TinyGPSPlus.h>
+
+#define RXPin 3  // GPS TX → Arduino RX
+#define TXPin 4  // GPS RX → Arduino TX
+#define gPin 5  // green led to nano pin 5
+#define rPin 6  // red led to nano pin 6
+#define BaudRate 9600  // GPS module baud rate
+
+SoftwareSerial gpsSerial(RXPin, TXPin);  // Create SoftwareSerial port
+TinyGPSPlus gps;  // Create TinyGPSPlus object
+
+
+
+int counter = 0;
+
+void setup() {
+  Serial.begin(115200);
+   gpsSerial.begin(BaudRate);  // GPS Serial Communication
+  Serial.println("Waiting for GPS signal...");
+   pinMode(gPin, OUTPUT);
+   pinMode(rPin, OUTPUT);
+               digitalWrite(gPin, HIGH);
+          digitalWrite(rPin, HIGH);
+
+
+delay(1500);
+digitalWrite(gPin, LOW);
+     digitalWrite(rPin, LOW);
+  while (!Serial);
+
+  Serial.println("LoRa Sender");
+
+  if (!LoRa.begin(433E6)) {
+    Serial.println("Starting LoRa failed!");
+    while (1);
+  }
+
+  LoRa.beginPacket();
+  
+  LoRa.print("hello ");
+  LoRa.print(counter);
+  LoRa.endPacket();
+
+}
+
+void loop() {
+
+
+  // delay(1000);
+ while (gpsSerial.available()) { // Check if data is available
+    char c = gpsSerial.read(); // Read one character at a time
+    gps.encode(c); // Parse the character
+
+    if (gps.location.isUpdated()) { // If new GPS data is available
+      Serial.print(" ");
+      Serial.print(gps.location.lat(), 6);
+      Serial.print(" ");
+      Serial.println(gps.location.lng(), 6);
+     
+     digitalWrite(gPin, HIGH);
+     digitalWrite(rPin, LOW);
+
+  Serial.print("Sending packet: ");
+  Serial.println(counter);
+
+  // send packet
+  LoRa.beginPacket();
+  
+  LoRa.print(gps.location.lat(),6);
+    LoRa.print("N");
+
+    LoRa.endPacket();
+    delay(10);
+  LoRa.beginPacket();
+
+  LoRa.print(gps.location.lng(),6);
+      LoRa.print("E");
+
+  LoRa.endPacket();
+
+  counter++;
+
+    }
+
+    else{
+
+          digitalWrite(rPin, HIGH);
+          digitalWrite(gPin, LOW);
+
+    }
+
+
+    }
+  
+}
